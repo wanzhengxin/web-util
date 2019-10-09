@@ -1,0 +1,49 @@
+<?xml version="1.0"?>
+<ruleset name="XJP09_HK">
+    <description>PHP Coding Standard</description>
+
+    <!-- PSR2编码风格 -->
+    <rule ref="PSR2">
+        <!-- <exclude name="Generic.NamingConventions.UpperCaseConstantName"/> -->
+        <!-- <exclude name="PSR1.Classes"/> -->
+        <!-- <exclude name="PSR2.Classes"/> -->
+        <!-- <exclude name="Squiz.Classes"/> -->
+        <!-- <exclude name="Squiz.Functions.MultiLineFunctionDeclaration"/> -->
+    </rule>
+
+    <!-- PHP 文件格式 -->
+    <rule ref="Generic.Files.LineLength">
+        <properties>
+            <property name="lineLimit" value="100"/>
+            <property name="absoluteLineLimit" value="120"/>
+        </properties>
+    </rule>
+    <rule ref="Generic.PHP.CharacterBeforePHPOpeningTag"/>
+    <rule ref="Generic.PHP.DisallowShortOpenTag"/>
+
+    <!-- 命名约定 -->
+    <rule ref="Squiz.Scope"/>
+    <rule ref="Squiz.NamingConventions.ValidVariableName"/>
+
+    <!-- 编码风格 -->
+    <rule ref="Generic.Arrays.ArrayIndent"/>
+    <rule ref="Generic.Arrays.DisallowLongArraySyntax"/>
+    <!-- <rule ref="Generic.Functions.OpeningFunctionBraceKernighanRitchie"/> -->
+    <rule ref="Squiz.Arrays.ArrayBracketSpacing"/>
+    <rule ref="Squiz.WhiteSpace.SuperfluousWhitespace">
+        <properties>
+            <property name="ignoreBlankLines" value="false"/>
+        </properties>
+    </rule>
+    <rule ref="Squiz.WhiteSpace.SuperfluousWhitespace.EmptyLines">
+        <severity>5</severity>
+    </rule>
+
+    <!-- 注释 -->
+    <rule ref="Generic.Commenting.Todo"/>
+    <rule ref="PEAR.Commenting.FunctionComment">
+        <exclude name="PEAR.Commenting.FunctionComment.MissingReturn"/>
+    </rule>
+    <rule ref="PEAR.Commenting.InlineComment"/>
+    <rule ref="Squiz.Commenting.VariableComment"/>
+</ruleset>

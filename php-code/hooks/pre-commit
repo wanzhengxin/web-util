@@ -1,0 +1,98 @@
+#!/bin/sh
+#
+# Git pre-commit 勾子文件
+#
+# Author: XJP09_HK <jianping_xie@aliyun.com>
+# Version: 1.0 (2015-11-24 20:41:22)
+# License: https://github.com/Kinping-Tse/web-util/blob/master/LICENSE
+
+if git rev-parse --verify HEAD >/dev/null 2>&1
+then
+    against=HEAD
+else
+    # Initial commit: diff against an empty tree object
+    against=4b825dc642cb6eb9a060e54bf8d69288fbee4904
+fi
+
+# Redirect output to stderr.
+exec 1>&2
+
+# php-code path
+cd $(git rev-parse --show-toplevel)
+codePath=$(dirname $(readlink "$0"))/../
+export PATH=${codePath}/bin:$PATH
+
+function checkCodeReviewBin {
+    commands='php phpcs phpcbf'
+    for command in $commands; do
+        $command -h &> /dev/null
+        if [ $? -ne 0 ]; then
+            echo "$command must be installed!"
+        fi
+    done
+}
+
+declare -a errors
+
+echo '----------------------------------------------------------------------'
+echo 'Code Review Start'
+echo
+
+# 检测必须安装的命令
+output=$(checkCodeReviewBin)
+if [ -n "$output" ]; then
+    echo "$output"
+    errors=("${errors[@]}" "$output")
+fi
+
+# 获取本次修改的php文件
+files=$(git diff-index --cached --name-only --diff-filter=ACMR $against | grep '\.php$')
+if [ ! -n "$errors" -a -n "$files" ]; then
+    echo 'Checking PHP Files ...'
+    echo
+
+    for file in $files; do
+        # 检测php语法
+        output=$(php -l $file | grep 'Errors parsing')
+        if [ -n "$output" ]; then
+            echo "$file contains php syntax errors"
+            errors=("${errors[@]}" "$output")
+        fi
+
+        phpcsCmd="phpcs --standard=$codePath --encoding=utf-8 --report=full --extensions=php $file"
+        phpcbfCmd="phpcbf --standard=$codePath --encoding=utf-8 --extensions=php $file"
+
+        # phpcs检测代码规范
+        output=$($phpcsCmd | grep '| ERROR')
+        if [ -n "$output" ]; then
+            $phpcsCmd
+
+            # phpcbf 自动修正可修复的规范
+            $phpcbfCmd
+
+            # 再次检测规范, 可忽略已自动修正成功的文件
+            output=$($phpcsCmd | grep '| ERROR')
+            if [ -n "$output" ]; then
+                echo "$file fails coding standards"
+                errors=("${errors[@]}" "$output")
+            else
+                git add "$file"
+            fi
+        fi
+    done
+fi
+
+if [ -n "$errors" ]; then
+    echo
+    echo '以上错误有哪些不明白的, 可以询问我 😄 XJP09_HK <jianping_xie@aliyun.com>'
+else
+    echo '🍺  No errors found!'
+fi
+
+echo
+echo 'Code Review End'
+echo '----------------------------------------------------------------------'
+
+if [ -n "$errors" ]; then
+    exit 1
+fi

@@ -1,0 +1,85 @@
+#!/usr/bin/env php
+<?php
+/**
+ * Git prepare-commit-msg 勾子文件
+ *
+ * @author  XJP09_HK <jianping_xie@aliyun.com>
+ * @version 1.0 (2016-06-02 20:59:07)
+ * @license https://github.com/Kinping-Tse/web-util/blob/master/LICENSE LICENSE
+ */
+
+namespace webUtil\phpCode\hook;
+
+class HookHelper
+{
+    /**
+     * @var string 提交信息文件名
+     */
+    protected $commitMsgFile;
+
+    /**
+     * 初始化方法
+     *
+     * @param  string $commitMsgFile 提交信息文件名
+     * @return HookHelper
+     */
+    public function init($commitMsgFile)
+    {
+        $this->commitMsgFile = $commitMsgFile;
+
+        return $this;
+    }
+
+    /**
+     * 执行勾子方法
+     */
+    public function run()
+    {
+        $this->hookCommitMsg();
+    }
+
+    /**
+     * 获取提交信息
+     *
+     * @return string
+     */
+    protected function getCommitMsg()
+    {
+        $msg = file_get_contents($this->commitMsgFile);
+        return $msg;
+    }
+
+    /**
+     * 提交的信息中插入 ISSUE
+     */
+    protected function hookCommitMsg()
+    {
+        $issue = $this->getIssue();
+        $msg = $this->getCommitMsg();
+
+        $prefixMsg = $msg;
+        $suffixMsg = "";
+        if (($pos = strpos($msg, "# ")) !== false) {
+            $prefixMsg = substr($msg, 0, $pos);
+            $suffixMsg = substr($msg, $pos);
+        }
+
+        $newMsg = $prefixMsg . "\n\n$issue\n\n" . $suffixMsg;
+        file_put_contents($this->commitMsgFile, $newMsg, LOCK_EX);
+    }
+
+    /**
+     * 获取 ISSUE 发布字符串
+     *
+     * @return string
+     */
+    protected function getIssue()
+    {
+        return 'ISSUE: cs-{hash}' . date('-Ymd-His');
+    }
+}
+
+date_default_timezone_set('PRC');
+
+$hook = new HookHelper();
+$hook->init($argv[1])->run();

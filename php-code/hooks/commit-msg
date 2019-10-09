@@ -1,0 +1,137 @@
+#!/usr/bin/env php
+<?php
+/**
+ * Git commit-msg 勾子文件
+ *
+ * @author  XJP09_HK <jianping_xie@aliyun.com>
+ * @version 1.0 (2016-06-01 16:24:03)
+ * @license https://github.com/Kinping-Tse/web-util/blob/master/LICENSE LICENSE
+ */
+
+namespace webUtil\phpCode\hook;
+
+class HookHelper
+{
+    const HOOK_VERSION = '1.0';
+    const MSG_MIN_LEN = 8;
+
+    /**
+     * @var array 错误信息
+     */
+    public $error = ['code' => 0, 'msg' => ''];
+
+    /**
+     * @var string 提交信息文件名
+     */
+    protected $commitMsgFile;
+
+    /**
+     * 初始化方法
+     *
+     * @param  string $commitMsgFile 提交信息文件名
+     * @return HookHelper
+     */
+    public function init($commitMsgFile)
+    {
+        $this->commitMsgFile = $commitMsgFile;
+
+        return $this;
+    }
+
+    /**
+     * 执行勾子方法
+     */
+    public function run()
+    {
+        echo "----------------------------------------------------------------------\n";
+        echo "Commit Message Review Start\n\n";
+
+        $this->hookCommitMsg();
+
+        if ($this->error['code']) {
+            echo $this->error['msg'];
+        } else {
+            echo "🍺  No errors found!";
+        }
+
+        echo "\n\nCommit Message Review End\n";
+        echo "----------------------------------------------------------------------\n";
+
+        if ($this->error['code']) {
+            exit(1);
+        }
+    }
+
+    /**
+     * 获取提交信息
+     *
+     * @return string
+     */
+    protected function getCommitMsg()
+    {
+        $msg = file_get_contents($this->commitMsgFile);
+        return $msg;
+    }
+
+    /**
+     * 提交的信息中插入 ISSUE
+     */
+    protected function hookCommitMsg()
+    {
+        $orgMsg = $this->getCommitMsg();
+
+        $issue = '';
+        $pos = strrpos($orgMsg, 'ISSUE: cs-{hash}');
+        if ($pos === false) {
+            $this->error['msg'] = "Bad issue commit!";
+            $this->error['code'] = 1;
+            return;
+        }
+
+        $issue = substr($orgMsg, $pos);
+        $msg = substr($orgMsg, 0, $pos);
+
+        $msg = $this->trimMsg($msg);
+        $minLen = self::MSG_MIN_LEN;
+        if (mb_strlen($msg, 'utf-8') < $minLen) {
+            $this->error['msg'] = "Commit message must more than $minLen characters!";
+            $this->error['code'] = 1;
+            return;
+        }
+
+        $hash = $this->getIssueHash($msg);
+        $msg = str_replace("{hash}", $hash, $orgMsg);
+
+        file_put_contents($this->commitMsgFile, $msg, LOCK_EX);
+    }
+
+    /**
+     * 去除提交信息中的空格换行等
+     *
+     * @param  string $msg 提交的信息
+     * @return string
+     */
+    protected function trimMsg($msg)
+    {
+        $msg = trim($msg);
+        $msg = str_replace(["\r\n", "\n", "\r"], "", $msg);
+        return $msg;
+    }
+
+    /**
+     * 获取 ISSUE hash
+     *
+     * @param  string $msg 提交的信息
+     * @return string
+     */
+    protected function getIssueHash($msg)
+    {
+        $version = self::HOOK_VERSION;
+        return substr(sha1($msg . $version), 0, 7);
+    }
+}
+
+date_default_timezone_set('PRC');
+
+$hook = new HookHelper();
+$hook->init($argv[1])->run();
